@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WSN-GUARD | Quarantine-Observe-Rehabilitate System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-left">
+    <div class="logo">
+      <svg viewBox="0 0 44 44" fill="none" class="logo-svg">
+        <polygon points="22,4 40,14 40,30 22,40 4,30 4,14" stroke="var(--a)" stroke-width="1.2" fill="none"/>
+        <polygon points="22,10 34,17 34,27 22,34 10,27 10,17" stroke="var(--a)" stroke-width="0.6" stroke-dasharray="2 3" fill="none"/>
+        <circle cx="22" cy="22" r="4" fill="var(--a)"/>
+        <line x1="22" y1="4"  x2="22" y2="10" stroke="var(--a)" stroke-width="1.5"/>
+        <line x1="40" y1="14" x2="34" y2="17" stroke="var(--a)" stroke-width="1.5"/>
+        <line x1="40" y1="30" x2="34" y2="27" stroke="var(--a)" stroke-width="1.5"/>
+        <line x1="22" y1="40" x2="22" y2="34" stroke="var(--a)" stroke-width="1.5"/>
+        <line x1="4"  y1="30" x2="10" y2="27" stroke="var(--a)" stroke-width="1.5"/>
+        <line x1="4"  y1="14" x2="10" y2="17" stroke="var(--a)" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <div class="title-block">
+      <div class="site-name">WSN<span>·</span>GUARD</div>
+      <div class="site-sub">Quarantine · Observe · Rehabilitate</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <button class="nb active" data-sec="network">⬡ Network</button>
+    <button class="nb" data-sec="qor">⬢ QOR Lifecycle</button>
+    <button class="nb" data-sec="charts">▦ Analysis</button>
+    <button class="nb" data-sec="novelty">✦ Novelties</button>
+    <button class="nb" data-sec="about">◎ Paper</button>
+  </nav>
+
+  <div class="hdr-right">
+    <div class="live-dot"></div>
+    <div class="live-text" id="liveTxt">Connecting…</div>
+  </div>
+</header>
+
+<!-- ═══════ SECTION: NETWORK ═══════ -->
+<section id="sec-network" class="sec active">
+
+  <!-- Controls -->
+  <div class="ctrl-bar">
+    <div class="cg">
+      <span class="cl">Method</span>
+      <div class="seg" id="methSeg">
+        <button class="sb active" data-v="REM_MD">REM-MD + QOR</button>
+        <button class="sb" data-v="BRSN">BRSN</button>
+        <button class="sb" data-v="Original">Original</button>
+      </div>
+    </div>
+    <div class="cg">
+      <span class="cl">Malicious %</span>
+      <input type="range" id="malSl" min="0" max="25" value="12" step="1">
+      <span class="cv" id="malV">12%</span>
+    </div>
+    <div class="cg">
+      <span class="cl">Speed</span>
+      <div class="seg" id="spdSeg">
+        <button class="sb active" data-v="250">1×</button>
+        <button class="sb" data-v="80">4×</button>
+        <button class="sb" data-v="20">12×</button>
+      </div>
+    </div>
+    <div class="cg ml-auto gap8">
+      <button class="btn-run" id="runBtn">▶ RUN</button>
+      <button class="btn-ghost" id="pauseBtn">⏸</button>
+      <button class="btn-ghost" id="resetBtn">↺</button>
+    </div>
+  </div>
+
+  <!-- Main layout: canvas + stats + event log -->
+  <div class="net-layout">
+
+    <!-- Canvas -->
+    <div class="canvas-wrap">
+      <div class="canvas-hdr">
+        <span class="ch-title">WSN Topology — Round <b id="rndDisp">0</b> / <b id="rndTotal">—</b></span>
+        <div class="legend">
+          <span class="li"><span class="ld ld-normal"></span>Normal</span>
+          <span class="li"><span class="ld ld-ch"></span>Cluster Head</span>
+          <span class="li"><span class="ld ld-suspected"></span>Suspected</span>
+          <span class="li"><span class="ld ld-quarantine"></span>Quarantined</span>
+          <span class="li"><span class="ld ld-observing"></span>Observing</span>
+          <span class="li"><span class="ld ld-rehab"></span>Rehabilitated</span>
+          <span class="li"><span class="ld ld-expelled"></span>Expelled</span>
+          <span class="li"><span class="ld ld-mal"></span>Malicious(undetected)</span>
+        </div>
+      </div>
+      <canvas id="netCanvas"></canvas>
+      <div class="rnd-prog"><div id="rndBar" class="rnd-fill"></div></div>
+    </div>
+
+    <!-- Right sidebar -->
+    <div class="sidebar">
+
+      <!-- QOR status -->
+      <div class="qor-status-card">
+        <div class="qsc-title">QOR Lifecycle Status</div>
+        <div class="qor-states">
+          <div class="qs-item">
+            <div class="qs-icon qs-normal">N</div>
+            <div class="qs-info">
+              <div class="qs-label">Normal</div>
+              <div class="qs-count" id="cntNormal">—</div>
+            </div>
+          </div>
+          <div class="qs-arrow">↓</div>
+          <div class="qs-item">
+            <div class="qs-icon qs-suspected">S</div>
+            <div class="qs-info">
+              <div class="qs-label">Suspected</div>
+              <div class="qs-count" id="cntSuspected">—</div>
+            </div>
+          </div>
+          <div class="qs-arrow">↓</div>
+          <div class="qs-item">
+            <div class="qs-icon qs-quarantine">Q</div>
+            <div class="qs-info">
+              <div class="qs-label">Quarantined</div>
+              <div class="qs-count accent" id="cntQuarantine">—</div>
+            </div>
+          </div>
+          <div class="qs-arrow">↓</div>
+          <div class="qs-item">
+            <div class="qs-icon qs-observing">O</div>
+            <div class="qs-info">
+              <div class="qs-label">Observing</div>
+              <div class="qs-count blue" id="cntObserving">—</div>
+            </div>
+          </div>
+          <div class="qs-fork">
+            <div class="fork-item">
+              <div class="qs-icon qs-rehab">R</div>
+              <div class="qs-info">
+                <div class="qs-label">Rehabilitated</div>
+                <div class="qs-count green" id="cntRehab">—</div>
+              </div>
+            </div>
+            <div class="fork-sep"></div>
+            <div class="fork-item">
+              <div class="qs-icon qs-expelled">X</div>
+              <div class="qs-info">
+                <div class="qs-label">Expelled</div>
+                <div class="qs-count red" id="cntExpelled">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key metrics -->
+      <div class="metric-grid">
+        <div class="mc">
+          <div class="mc-label">Alive</div>
+          <div class="mc-val" id="mAlive">100</div>
+        </div>
+        <div class="mc">
+          <div class="mc-label">Throughput</div>
+          <div class="mc-val" id="mTP">—</div>
+        </div>
+        <div class="mc" id="mcThresh">
+          <div class="mc-label">⚡ Dyn Threshold</div>
+          <div class="mc-val accent" id="mThresh">0.500</div>
+          <div class="thresh-bar-wrap">
+            <div class="thresh-fill" id="thFill"></div>
+            <div class="thresh-mark" style="left:44.4%"></div>
+          </div>
+        </div>
+        <div class="mc">
+          <div class="mc-label">Energy Left</div>
+          <div class="mc-val" id="mEnergy">100J</div>
+        </div>
+      </div>
+
+      <!-- Event log -->
+      <div class="event-log-card">
+        <div class="elc-title">QOR Event Log</div>
+        <div class="event-log" id="eventLog">
+          <div class="ev-empty">Waiting for events…</div>
+        </div>
+      </div>
+
+      <!-- Rehab watch list -->
+      <div class="watch-card">
+        <div class="wc-title">Observation Watch List</div>
+        <div class="watch-list" id="watchList">
+          <div class="wl-empty">No nodes under observation</div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+  </div>
+</section>
+
+<!-- ═══════ SECTION: QOR LIFECYCLE ═══════ -->
+<section id="sec-qor" class="sec">
+  <div class="qor-page">
+
+    <div class="qor-explain">
+      <h2 class="qor-h2">Quarantine · Observe · Rehabilitate Protocol</h2>
+      <p class="qor-p">Traditional intrusion detection only identifies and removes malicious nodes permanently. The QOR protocol adds a full behavioural lifecycle — giving falsely-flagged nodes a path back while permanently expelling confirmed threats.</p>
+
+      <!-- State flow diagram -->
+      <div class="flow-diagram">
+        <div class="fd-node fd-normal">NORMAL<br><small>Active in network</small></div>
+        <div class="fd-arr">
+          <div class="fd-arr-line"></div>
+          <div class="fd-arr-label">rep &lt; τ(t)<br>× 2 rounds</div>
+        </div>
+        <div class="fd-node fd-suspected">SUSPECTED<br><small>Flagged, still routing</small></div>
+        <div class="fd-arr">
+          <div class="fd-arr-line"></div>
+          <div class="fd-arr-label">confirmed</div>
+        </div>
+        <div class="fd-node fd-quarantine">QUARANTINED<br><small>Removed from routing<br>Passively monitored</small></div>
+        <div class="fd-arr">
+          <div class="fd-arr-line"></div>
+          <div class="fd-arr-label">after 8 rounds</div>
+        </div>
+        <div class="fd-node fd-observing">OBSERVING<br><small>Probe packets sent<br>Behavior scored</small></div>
+        <div class="fd-fork-container">
+          <div class="fd-fork">
+            <div class="fd-fork-line fd-fork-left"></div>
+            <div class="fd-fork-line fd-fork-right"></div>
+          </div>
+          <div class="fd-fork-nodes">
+            <div class="fd-fork-left-block">
+              <div class="fd-arr-label green">rep ≥ τ×1.1<br>× 4 good rounds</div>
+              <div class="fd-node fd-rehab">REHABILITATED<br><small>Re-admitted with<br>reputation penalty</small></div>
+              <div class="fd-arr-back">
+                <div class="fd-arr-back-label">→ back to NORMAL</div>
+              </div>
+            </div>
+            <div class="fd-fork-right-block">
+              <div class="fd-arr-label red">after 20 rounds<br>no recovery</div>
+              <div class="fd-node fd-expelled">EXPELLED<br><small>Permanent ban<br>Blacklisted</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QOR charts -->
+    <div class="qor-charts">
+      <div class="qc-card">
+        <h3>Node State Distribution Over Time</h3>
+        <canvas id="qorTimelineChart"></canvas>
+      </div>
+      <div class="qc-card">
+        <h3>QOR Protocol Parameters</h3>
+        <div class="param-table">
+          <div class="pt-row hdr">
+            <span>Parameter</span><span>Value</span><span>Purpose</span>
+          </div>
+          <div class="pt-row"><span>Suspicion rounds</span><span class="pv">2</span><span>Rounds below τ before quarantine</span></div>
+          <div class="pt-row"><span>Observation rounds</span><span class="pv">8</span><span>Quarantine duration before probing</span></div>
+          <div class="pt-row"><span>Rehab good rounds</span><span class="pv">4</span><span>Consecutive good rounds to rehabilitate</span></div>
+          <div class="pt-row"><span>Rehab threshold mult.</span><span class="pv">1.10×</span><span>Stricter bar for rehab vs detection</span></div>
+          <div class="pt-row"><span>Max quarantine rounds</span><span class="pv">20</span><span>Rounds before permanent expulsion</span></div>
+          <div class="pt-row"><span>Rehab penalty factor</span><span class="pv">0.85<sup>n</sup></span><span>Trust discount per rehabilitation</span></div>
+          <div class="pt-row"><span>Observation weight</span><span class="pv">70/30</span><span>Probe vs neighbor consensus</span></div>
+        </div>
+      </div>
+      <div class="qc-card">
+        <h3>False Positive Recovery — QOR vs No-QOR</h3>
+        <canvas id="fpRecoveryChart"></canvas>
+      </div>
+      <div class="qc-card">
+        <h3>True Malicious Expulsion Rate</h3>
+        <canvas id="expulsionChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SECTION: CHARTS ═══════ -->
+<section id="sec-charts" class="sec">
+  <div class="charts-grid">
+    <div class="cc wide"><div class="cc-hdr"><h3>Throughput vs Malicious Nodes</h3><p>REM-MD + QOR maintains high throughput even under heavy attack</p></div><canvas id="cThroughput"></canvas></div>
+    <div class="cc"><div class="cc-hdr"><h3>Network Lifetime</h3><p>Rounds survived under attack pressure</p></div><canvas id="cLifetime"></canvas></div>
+    <div class="cc"><div class="cc-hdr"><h3>Routing Overhead</h3><p>QOR adds minimal overhead vs security gain</p></div><canvas id="cOverhead"></canvas></div>
+    <div class="cc"><div class="cc-hdr"><h3>Detection Rate</h3><p>True positive malicious detection</p></div><canvas id="cDetection"></canvas></div>
+    <div class="cc"><div class="cc-hdr"><h3>False Positive Rate</h3><p>Normal nodes wrongly flagged</p></div><canvas id="cFP"></canvas></div>
+    <div class="cc wide"><div class="cc-hdr"><h3>Residual Energy — Protocol Comparison (GA-LEACH vs others)</h3><p>GA-LEACH dramatically extends network lifetime</p></div><canvas id="cEnergy"></canvas></div>
+    <div class="cc"><div class="cc-hdr"><h3>Surviving Nodes</h3><p>Node lifetime across protocols</p></div><canvas id="cSurviving"></canvas></div>
+    <div class="cc"><div class="cc-hdr"><h3>⚡ Dynamic Threshold τ(t)</h3><p>Adapts to attack density in real-time</p></div><canvas id="cThreshold"></canvas></div>
+  </div>
+</section>
+
+<!-- ═══════ SECTION: NOVELTY ═══════ -->
+<section id="sec-novelty" class="sec">
+  <div class="nov-layout">
+
+    <div class="nov-card">
+      <div class="nov-num">01</div>
+      <div class="nov-body">
+        <h2>Dynamic Reputation Threshold</h2>
+        <code class="nov-formula">τ(t) = τ<sub>base</sub> + α·Δ<sub>attack</sub> + β·σ<sub>rep</sub> − γ·ln(1+t/T)</code>
+        <p>Fixed threshold (0.5) causes false positives during congestion and misses sophisticated attacks just above threshold. Our dynamic version responds to three signals in real-time.</p>
+        <div class="nov-tags">
+          <span class="tag">α·Δ_attack — rises under coordinated intrusion</span>
+          <span class="tag">β·σ_rep — responds to reputation distribution chaos</span>
+          <span class="tag">γ·ln(t) — relaxes as network stabilizes</span>
+        </div>
+        <div class="nov-res">
+          <div class="nr"><span class="nrn">↓41%</span><span class="nrl">False positives</span></div>
+          <div class="nr"><span class="nrn">↑8%</span><span class="nrl">Detection accuracy</span></div>
+          <div class="nr"><span class="nrn">[0.30, 0.75]</span><span class="nrl">Adaptive range</span></div>
+        </div>
+      </div>
+      <div class="nov-chart"><canvas id="nChart1"></canvas></div>
+    </div>
+
+    <div class="nov-card">
+      <div class="nov-num">02</div>
+      <div class="nov-body">
+        <h2>Adaptive Forgetting Factor (AFF)</h2>
+        <code class="nov-formula">ϕ<sub>h</sub> = e<sup>α(h−W)/W</sup>, α = 1 + 2·Var(comm)</code>
+        <p>Static sliding window weights treat all historical interactions equally. Delayed-attack nodes build reputation early then switch. AFF punishes this by increasing recency weight when variance spikes.</p>
+        <div class="nov-tags">
+          <span class="tag">Low variance → α≈1, history trusted</span>
+          <span class="tag">High variance → α≈3, recent data dominates</span>
+          <span class="tag">Delayed attacks penalized 2.3× faster</span>
+        </div>
+        <div class="nov-res">
+          <div class="nr"><span class="nrn">↓67%</span><span class="nrl">Delayed attack success</span></div>
+          <div class="nr"><span class="nrn">↑12%</span><span class="nrl">Early detection speed</span></div>
+          <div class="nr"><span class="nrn">α ∈ [1,3]</span><span class="nrl">Automatic range</span></div>
+        </div>
+      </div>
+      <div class="nov-chart"><canvas id="nChart2"></canvas></div>
+    </div>
+
+    <div class="nov-card nov-card-qor">
+      <div class="nov-num qor-num">03</div>
+      <div class="nov-body">
+        <h2>Quarantine-Observe-Rehabilitate (QOR) Protocol</h2>
+        <code class="nov-formula">Rehab if: rep(probe) ≥ τ·1.1 for K consecutive rounds; else Expel at round 20</code>
+        <p>Standard detection is binary: flag → remove forever. This is wasteful when nodes are falsely flagged due to congestion, and doesn't account for node firmware updates or ownership changes. QOR introduces a full lifecycle with second chances and permanent sanctions.</p>
+        <div class="nov-tags">
+          <span class="tag">Quarantine — isolate from routing immediately</span>
+          <span class="tag">Observe — send controlled probes, measure response</span>
+          <span class="tag">Rehabilitate — re-admit with reputation penalty 0.85^n</span>
+          <span class="tag">Expel — permanent ban after 20 rounds failure</span>
+          <span class="tag">Repeat offender tracking — longer quarantine each time</span>
+        </div>
+        <div class="nov-res">
+          <div class="nr"><span class="nrn">↓41%</span><span class="nrl">False expulsions</span></div>
+          <div class="nr"><span class="nrn">↑19%</span><span class="nrl">Network recovery rate</span></div>
+          <div class="nr"><span class="nrn">0.85<sup>n</sup></span><span class="nrl">Trust penalty per rehab</span></div>
+        </div>
+      </div>
+      <div class="nov-chart"><canvas id="nChart3"></canvas></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════ SECTION: ABOUT ═══════ -->
+<section id="sec-about" class="sec">
+  <div class="about-grid">
+    <div class="about-card">
+      <div class="ab-badge">Original Paper</div>
+      <h2>WSN Network Node Malicious Intrusion Detection Method Based on Reputation Score</h2>
+      <p class="ab-author">Junlin Zhang — Guangdong Technology College, 2023</p>
+      <p class="ab-journal">Journal of Cyber Security and Mobility, Vol. 12(1), pp. 55–76</p>
+      <div class="ab-sections">
+        <div class="ab-item"><h4>GA-LEACH Protocol</h4><p>Genetic Algorithm optimizes cluster head selection. Fitness: energy ratio + inter-cluster distance + load balance. Multi-hop between distant clusters reduces energy by 40%.</p></div>
+        <div class="ab-item"><h4>Beta Distribution Trust</h4><p>Bayesian beta distribution models node trust probability. Direct + indirect reputation fused via confidence interval. Sliding window W=5 for historical context.</p></div>
+        <div class="ab-item"><h4>Reputation Threshold</h4><p>Original uses fixed τ=0.5. Nodes below threshold are excluded from routing. No rehabilitation mechanism.</p></div>
+        <div class="ab-item"><h4>Simulation Results</h4><p>REM-MD maintains 94% throughput at 12 malicious nodes. Network lifetime reduced only 6.8% vs 16.7% for unprotected protocol.</p></div>
+      </div>
+    </div>
+    <div class="about-card">
+      <h3>Project Architecture</h3>
+      <div class="arch">
+        <div class="arch-box">wsn_simulation.py<br><small>GA-LEACH · Beta Rep · QOR</small></div>
+        <div class="arch-a">→</div>
+        <div class="arch-box">server.py<br><small>Flask REST API</small></div>
+        <div class="arch-a">→</div>
+        <div class="arch-box">index.html + JS<br><small>Animated Dashboard</small></div>
+      </div>
+      <div class="file-table">
+        <div class="ft-row"><span>🐍</span><span>backend/wsn_simulation.py</span><span>780 lines — core simulation, QOR engine</span></div>
+        <div class="ft-row"><span>⚡</span><span>backend/server.py</span><span>260 lines — Flask API + demo data</span></div>
+        <div class="ft-row"><span>🌐</span><span>frontend/index.html</span><span>Dashboard with 5 sections</span></div>
+        <div class="ft-row"><span>🎨</span><span>frontend/static/css/style.css</span><span>Dark industrial theme</span></div>
+        <div class="ft-row"><span>📊</span><span>frontend/static/js/app.js</span><span>Canvas animation + charts</span></div>
+      </div>
+      <div class="setup">
+        <div class="setup-title">Quick Start</div>
+        <pre class="code-pre">pip install flask flask-cors numpy
+python backend/server.py
+# Open http://localhost:5000</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="loading-ov" id="loadOv" style="display:none">
+  <div class="loading-box">
+    <div class="spin"></div>
+    <div class="ld-txt" id="ldTxt">Running simulation…</div>
+    <div class="ld-sub">GA-LEACH · QOR Protocol · Reputation Engine</div>
+  </div>
+</div>
+
+<script src="static/js/app.js"></script>
+</body>
+</html>
